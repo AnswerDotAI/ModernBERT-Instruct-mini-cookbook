@@ -32,6 +32,42 @@ In AGNews, we use verbose labels, but it works really well by using letter prefi
 
 Inference is really simple, because all we're doing is running a single forward pass using the Masked Language Modelling head. The `eval.py` is a standalone and shows you how the model was evaluated on MMLU.
 
+If you just want to get the model up and running really quick, this is a fully-contained inference example:
+
+```python
+import torch
+from transformers import AutoTokenizer, AutoModelForMaskedLM
+
+# Load model and tokenizer
+model_name = "answerdotai/ModernBERT-Large-Instruct"
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+if device == 'cuda':
+    model = AutoModelForMaskedLM.from_pretrained(model_name, attn_implementation="flash_attention_2")
+else:
+    model = AutoModelForMaskedLM.from_pretrained(model_name)
+
+model.to(device)
+
+# Format input for classification or multiple choice. This is a random example from MMLU.
+text = """You will be given a question and options. Select the right answer.
+QUESTION: If (G, .) is a group such that (ab)^-1 = a^-1b^-1, for all a, b in G, then G is a/an
+CHOICES:
+- A: commutative semi group
+- B: abelian group
+- C: non-abelian group
+- D: None of these
+ANSWER: [unused0] [MASK]"""
+
+# Get prediction
+inputs = tokenizer(text, return_tensors="pt").to(device)
+outputs = model(**inputs)
+mask_idx = (inputs.input_ids == tokenizer.mask_token_id).nonzero()[0, 1]
+pred_id = outputs.logits[0, mask_idx].argmax()
+answer = tokenizer.decode(pred_id)
+print(f"Predicted answer: {answer}")  # Outputs: B
+```
+
 ## Citation
 
 If you use this code or build upon the ModernBERT-Large-Instruct model or idea, please cite the following paper:
