@@ -1,0 +1,5 @@
+transformers>=4.48.2
+datasets
+torch
+tqdm
+sklearn
